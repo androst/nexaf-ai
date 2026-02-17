@@ -136,25 +136,38 @@ Comprehensive baseline characteristics at study enrollment.
 
 ### Echocardiography (BL_ prefix)
 
+#### LV Function
 | Variable | Description |
 |----------|-------------|
 | `BL_lvef_bip_ai` | LV ejection fraction biplane (AI) |
+| `BL_ef_biplane_03_percent` | LV EF biplane (%) |
 | `BL_lvedv_bip_ai` | LV end-diastolic volume (ml) |
 | `BL_lvesv_bip_ai` | LV end-systolic volume (ml) |
+| `BL_lvot_sv_ml` | Stroke volume (ml) |
+| `BL_lvot_co_l_min` | Cardiac output (L/min) |
+
+#### LA Assessment
+| Variable | Description |
+|----------|-------------|
 | `BL_la_cm` | Left atrial diameter (cm) |
 | `BL_la_as_a4c_cm2` | LA area 4-chamber (cm²) |
+| `BL_laesv_bip_ai` | LA end-systolic volume biplane (ml) |
+| `BL_laesv_mod_bp_ml` | LA ESV modified biplane (ml) |
+| `BL_auto_laq_vmax_ml` | LA volume max (ml) |
+| `BL_auto_laq_vmin_ml` | LA volume min (ml) |
+| `BL_auto_laq_gls_r_percent` | LA reservoir strain (%) |
+| `BL_auto_laq_gls_cd_percent` | LA conduit strain (%) |
+| `BL_auto_laq_gls_ct_percent` | LA contractile strain (%) |
+
+#### RV Function & Diastolic
+| Variable | Description |
+|----------|-------------|
 | `BL_mm_tapse_cm` | TAPSE (cm) |
 | `BL_rv_sprime_velocity_m_s` | RV S' velocity (m/s) |
 | `BL_mv_e_velocity_m_s` | Mitral E velocity (m/s) |
 | `BL_mv_a_velocity_m_s` | Mitral A velocity (m/s) |
 | `BL_mv_e_a_ratio_1` | E/A ratio |
 | `BL_mv_e_eprime_average_ratio_calc_1` | E/e' ratio (average) |
-| `BL_lvot_sv_ml` | Stroke volume (ml) |
-| `BL_lvot_co_l_min` | Cardiac output (L/min) |
-| `BL_auto_laq_gls_r_percent` | LA reservoir strain (%) |
-| `BL_auto_laq_gls_cd_percent` | LA conduit strain (%) |
-| `BL_auto_laq_gls_ct_percent` | LA contractile strain (%) |
-| `BL_ef_biplane_03_percent` | LV EF biplane (%) |
 
 ### Quality of Life & Symptoms
 
@@ -275,9 +288,35 @@ Main analysis file with outcomes and longitudinal data.
 | `AE1_grad` - `AE3_grad` | Adverse event severity |
 | `AE1_trening` - `AE3_trening` | Training-related flag |
 
-### Post Echocardiography (POST_ prefix)
+### Post Echocardiography (POST_ prefix - uppercase)
 
 Same variables as baseline with `POST_` prefix instead of `BL_`.
+
+| Baseline | Post | Description |
+|----------|------|-------------|
+| `BL_lvef_bip_ai` | `POST_lvef_bip_ai` | LV EF Biplane (%) |
+| `BL_lvedv_bip_ai` | `POST_lvedv_bip_ai` | LV EDV (ml) |
+| `BL_lvesv_bip_ai` | `POST_lvesv_bip_ai` | LV ESV (ml) |
+| `BL_la_cm` | `POST_la_cm` | LA Diameter (cm) |
+| `BL_laesv_bip_ai` | `POST_laesv_bip_ai` | LA ESV Biplane (ml) |
+| `BL_auto_laq_vmax_ml` | `POST_auto_laq_vmax_ml` | LA Volume Max (ml) |
+| `BL_auto_laq_gls_r_percent` | `POST_auto_laq_gls_r_percent` | LA Reservoir Strain (%) |
+| `BL_lvot_sv_ml` | `POST_lvot_sv_ml` | Stroke Volume (ml) |
+| `BL_lvot_co_l_min` | `POST_lvot_co_l_min` | Cardiac Output (L/min) |
+
+### Post CPET (Post_CPET_ prefix - mixed case)
+
+| Baseline | Post | Description |
+|----------|------|-------------|
+| `BL_CPET_max_VO2_mlkgmin` | `Post_CPET_max_VO2_mlkgmin` | VO₂peak (ml/kg/min) |
+| `BL_CPET_max_VO2_lmin` | `Post_CPET_max_VO2_lmin` | VO₂peak (L/min) |
+| `BL_CPET_Hfmax` | `Post_CPET_Hfmax` | HR Max (bpm) |
+| `BL_CPET_max_hf` | `Post_CPET_max_hf` | Peak HR (bpm) |
+| `BL_CPET_RERmax` | `Post_CPET_RERmax` | RER Max |
+| `BL_CPET_max_kmt` | `Post_CPET_max_kmt` | Max Speed (km/h) |
+| `BL_CPET_max_stigning` | `Post_CPET_max_stigning` | Max Incline (%) |
+| `BL_CPET_max_borg` | `Post_CPET_max_borg` | Peak Borg Score |
+| `BL_CPET_HF_1min` | `Post_CPET_HF_1min` | HR at 1 min Recovery (bpm) |
 
 ---
 
@@ -307,9 +346,67 @@ Manual validation of AF episodes.
 | `Rand_` | Randomization variable |
 | `AE#_` | Adverse event (numbered) |
 
+---
+
+## Value Codings & Counts
+
+### Key Categorical Variables
+
+| Variable | Value | Label | N |
+|----------|-------|-------|---|
+| `Kjønn` (Sex) | 1 | Male | 203 |
+| | 2 | Female | 90 |
+| `BL_AF_type` | 1 | Paroxysmal | 223 |
+| | 2 | Persistent | 72 |
+| `Strat_AF_type` | 6 | Paroksysmal | 222 |
+| | 7 | Persisterende | 72 |
+| `Rand_arm` | 1 | Training | 146 |
+| | 2 | Control | 148 |
+
+### mEHRA Score (`BL_mEHRA`)
+
+| Value | N | Description |
+|-------|---|-------------|
+| 1 | 13 | No symptoms |
+| 2a | 55 | Mild symptoms (2A/2a combined: 63) |
+| 2b | 73 | Moderate symptoms (2B/2b combined: 74) |
+| 3 | 90 | Severe symptoms |
+| 4 | 33 | Disabling symptoms |
+| 2, 2-3 | 19 | Ambiguous coding |
+| . | 3 | Missing |
+
+### Binary Variables (0=No, 1=Yes)
+
+| Variable | No (n) | Yes (n) |
+|----------|--------|---------|
+| `BL_HTN` | 172 | 123 |
+| `BL_ablasjon_nei_ja` | 238 | 57 |
+| `BL_konvertering_nei_ja` | 166 | 129 |
+| `Post_ablasjon_nei_ja` | — | 20 |
+| `Post_konvertering_nei_ja` | — | 44 |
+
+**Note**: Post variables use missing (NaN) for "No" rather than 0.
+
 ## Notes
 
 - **Norwegian variable labels**: Many variables have Norwegian labels (e.g., "Kjønn" = Sex, "Alder" = Age)
-- **Binary variables**: Generally coded as 0=No, 1=Yes
+- **Sex variable (`Kjønn`)**: Coded as 1=Male, 2=Female (NOT 0/1)
+- **Binary variables**: Generally coded as 0=No, 1=Yes (except Sex)
 - **Missing data**: Represented as system missing in SPSS
 - **Date formats**: Various date/time formats; see `pyreadstat` for parsing
+- **POST prefix conventions**:
+  - Echo variables: `POST_` (uppercase) - e.g., `POST_lvef_bip_ai`
+  - CPET variables: `Post_CPET_` (mixed case) - e.g., `Post_CPET_max_VO2_mlkgmin`
+  - Clinical variables: `Post_` (title case) - e.g., `Post_ablasjon_nei_ja`
+- **LA volumes**: Only LAESV (end-systolic) available, no LAEDV (end-diastolic)
+
+## Data File Contents
+
+| File | Variables |
+|------|-----------|
+| `NEXAF_baselinefil_171125_EFL.sav` | `BL_*` baseline variables (echo, CPET, labs, etc.) |
+| `Hovedfil_analyser_hovedartikkel021225_oppdatertAFburden.sav` | `POST_*` echo, `Post_CPET_*` CPET, `Post_*` clinical, outcomes |
+| `df_ep5_fil_sep25_EFL.sav` | Episode-level AF data |
+| `valideringsdatasett300126.sav` | Validation data |
+
+**Important**: Post-intervention data (`POST_*`, `Post_CPET_*`) is in the **Hovedfil** (burden file), NOT the baseline file.
