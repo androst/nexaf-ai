@@ -96,7 +96,7 @@ def create_analysis_table(
             is_categorical = (
                 dtype == 'object' or
                 dtype.name == 'category' or
-                (n_unique <= 5 and dtype in ['int64', 'int32', 'float64', 'float32'])
+                (n_unique <= 5 and np.issubdtype(dtype, np.number))
             )
 
         row = {'Variable': label}
@@ -125,19 +125,21 @@ def create_analysis_table(
                 is_categorical = True
 
         if is_categorical:
-            # Categorical variable - check if binary (0/1) or multi-category
-            unique_vals = vals.unique()
-            is_binary = set(unique_vals).issubset({0, 1, 0.0, 1.0})
+            # Categorical variable - check if binary (2 unique values) or multi-category
+            unique_vals = sorted(vals.unique())
+            is_binary = len(unique_vals) == 2
 
             if is_binary:
-                # Binary variable - show % positive
-                pct_pos = 100 * (vals == 1).sum() / len(vals) if len(vals) > 0 else 0
+                # Binary variable - show % of the higher value
+                # Works for 0/1, 1/2, or any two-value coding
+                positive_val = unique_vals[1]  # The higher value is "positive"
+                pct_pos = 100 * (vals == positive_val).sum() / len(vals) if len(vals) > 0 else 0
                 row['Overall'] = f"{pct_pos:.1f}%"
 
                 for p in range(n_phenotypes):
                     pvals = df[df[phenotype_col] == p][col].dropna()
                     if len(pvals) > 0:
-                        pct = 100 * (pvals == 1).sum() / len(pvals)
+                        pct = 100 * (pvals == positive_val).sum() / len(pvals)
                         row[f'P{p}'] = f"{pct:.1f}%"
                     else:
                         row[f'P{p}'] = 'N/A'
