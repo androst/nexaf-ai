@@ -8,6 +8,7 @@ and comprehensive analysis tables.
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+import base64
 
 import pandas as pd
 
@@ -30,13 +31,32 @@ class ReportData:
     # Optional analysis tables
     ilr_features_df: Optional[pd.DataFrame] = None
     baseline_df: Optional[pd.DataFrame] = None
-    echo_df: Optional[pd.DataFrame] = None
-    cpet_df: Optional[pd.DataFrame] = None
+
+    # Echocardiography (split by timepoint)
+    echo_bl_df: Optional[pd.DataFrame] = None
+    echo_post_df: Optional[pd.DataFrame] = None
+
+    # Indexed parameters (split by timepoint)
+    indexed_bl_df: Optional[pd.DataFrame] = None
+    indexed_post_df: Optional[pd.DataFrame] = None
+
+    # CPET (split by timepoint)
+    cpet_bl_df: Optional[pd.DataFrame] = None
+    cpet_post_df: Optional[pd.DataFrame] = None
+
+    # Change tables (Post - Baseline)
+    echo_change_df: Optional[pd.DataFrame] = None
+    indexed_change_df: Optional[pd.DataFrame] = None
+    cpet_change_df: Optional[pd.DataFrame] = None
+
     qol_df: Optional[pd.DataFrame] = None
     exercise_df: Optional[pd.DataFrame] = None
     treatment_df: Optional[pd.DataFrame] = None
     hosp_df: Optional[pd.DataFrame] = None
     hosp_p_val: Optional[float] = None
+
+    # Dashboard figures (paths to image files)
+    dashboard_figures: List[str] = field(default_factory=list)
 
     # Styling
     phenotype_colors: List[str] = field(default_factory=lambda: DEFAULT_PHENOTYPE_COLORS.copy())
@@ -50,6 +70,7 @@ class PhenotypeReportGenerator:
         body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
         h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
         h2 { color: #34495e; margin-top: 40px; border-bottom: 1px solid #bdc3c7; padding-bottom: 5px; }
+        h3 { color: #5d6d7e; margin-top: 25px; font-size: 14px; }
         table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 12px; }
         th { background-color: #3498db; color: white; padding: 10px; text-align: left; }
         td { padding: 8px; border-bottom: 1px solid #ddd; }
@@ -58,6 +79,10 @@ class PhenotypeReportGenerator:
         .significant { background-color: #d5f4e6; }
         .header-info { background-color: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
         .note { color: #7f8c8d; font-style: italic; font-size: 11px; }
+        .dashboard { display: flex; flex-direction: column; gap: 30px; margin: 30px 0; align-items: center; }
+        .dashboard-figure { width: 100%; max-width: 1100px; text-align: center; }
+        .dashboard-figure img { width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .dashboard-figure figcaption { color: #5d6d7e; font-size: 12px; margin-top: 8px; font-weight: 500; }
     </style>
     """
 
@@ -97,6 +122,11 @@ class PhenotypeReportGenerator:
         # Header
         sections.append(self._generate_header())
 
+        # Dashboard (if figures provided)
+        dashboard = self._generate_dashboard()
+        if dashboard:
+            sections.append(dashboard)
+
         # Section 1: Phenotype Summary
         sections.append(self._generate_section(
             "1. Phenotype Summary",
@@ -123,53 +153,70 @@ class PhenotypeReportGenerator:
                 self.data.baseline_df.sort_values('p-value').to_html(index=False, classes='baseline-table', na_rep='N/A')
             ))
 
-        # Section 4: Echocardiography
-        if self.data.echo_df is not None:
-            sections.append(self._generate_section(
+        # Section 4: Echocardiography (split by timepoint)
+        if self.data.echo_bl_df is not None or self.data.echo_post_df is not None:
+            sections.append(self._generate_split_section(
                 "4. Echocardiography",
-                "Raw values, BSA-indexed, and VO₂peak-indexed parameters (per Letnes et al. 2023)",
-                self.data.echo_df.sort_values('p-value').to_html(index=False, classes='echo-table', na_rep='N/A')
+                "Echocardiographic parameters by phenotype",
+                self.data.echo_bl_df,
+                self.data.echo_post_df,
+                "echo-table",
+                self.data.echo_change_df
             ))
 
-        # Section 5: CPET
-        if self.data.cpet_df is not None:
-            sections.append(self._generate_section(
-                "5. Cardiopulmonary Exercise Test (CPET)",
+        # Section 5: Indexed Parameters (split by timepoint)
+        if self.data.indexed_bl_df is not None or self.data.indexed_post_df is not None:
+            sections.append(self._generate_split_section(
+                "5. Indexed Echocardiographic Parameters",
+                "BSA-indexed (traditional) and VO2peak-indexed (physiological, per Letnes et al. 2023) parameters",
+                self.data.indexed_bl_df,
+                self.data.indexed_post_df,
+                "indexed-table",
+                self.data.indexed_change_df
+            ))
+
+        # Section 6: CPET (split by timepoint)
+        if self.data.cpet_bl_df is not None or self.data.cpet_post_df is not None:
+            sections.append(self._generate_split_section(
+                "6. Cardiopulmonary Exercise Test (CPET)",
                 "Peak exercise capacity and HR recovery parameters",
-                self.data.cpet_df.sort_values('p-value').to_html(index=False, classes='cpet-table', na_rep='N/A')
+                self.data.cpet_bl_df,
+                self.data.cpet_post_df,
+                "cpet-table",
+                self.data.cpet_change_df
             ))
 
-        # Section 6: Quality of Life
+        # Section 7: Quality of Life
         if self.data.qol_df is not None:
             sections.append(self._generate_section(
-                "6. Quality of Life",
+                "7. Quality of Life",
                 "AFEQT scores at baseline, 6 months, and post-intervention",
                 self.data.qol_df.sort_values('p-value').to_html(index=False, classes='qol-table', na_rep='N/A')
             ))
 
-        # Section 7: Exercise Time
+        # Section 8: Exercise Time
         if self.data.exercise_df is not None:
             sections.append(self._generate_section(
-                "7. Exercise Time",
+                "8. Exercise Time",
                 "Baseline and post-intervention exercise minutes per week",
                 self.data.exercise_df.to_html(index=False, classes='exercise-table', na_rep='N/A')
             ))
 
-        # Section 8: Treatments
+        # Section 9: Treatments
         if self.data.treatment_df is not None:
             sections.append(self._generate_section(
-                "8. Treatments & Procedures",
+                "9. Treatments & Procedures",
                 "Post-intervention ablation, cardioversion, and medication use",
                 self.data.treatment_df.sort_values('p-value').to_html(index=False, classes='treatment-table', na_rep='N/A')
             ))
 
-        # Section 9: Hospitalization
+        # Section 10: Hospitalization
         if self.data.hosp_df is not None:
             hosp_html = self.data.hosp_df.to_html(index=False, classes='hosp-table')
             if self.data.hosp_p_val is not None:
                 hosp_html += f'\n    <p><strong>Chi-square test:</strong> p = {self.data.hosp_p_val:.4f}</p>'
             sections.append(self._generate_section(
-                "9. Hospitalization",
+                "10. Hospitalization",
                 "AF-related hospitalization rates by phenotype",
                 hosp_html
             ))
@@ -213,6 +260,47 @@ class PhenotypeReportGenerator:
     {content}
 """
 
+    def _generate_split_section(
+        self,
+        title: str,
+        note: str,
+        bl_df: Optional[pd.DataFrame],
+        post_df: Optional[pd.DataFrame],
+        table_class: str,
+        change_df: Optional[pd.DataFrame] = None
+    ) -> str:
+        """Generate a section with separate Baseline, Post, and Change tables."""
+        section_num = title.split('.')[0]
+        content_parts = [f"""
+    <h2>{title}</h2>
+    <p class="note">{note}</p>"""]
+
+        if bl_df is not None and not bl_df.empty:
+            bl_html = bl_df.sort_values('p-value').to_html(
+                index=False, classes=table_class, na_rep='N/A'
+            )
+            content_parts.append(f"""
+    <h3>{section_num}.1 Baseline</h3>
+    {bl_html}""")
+
+        if post_df is not None and not post_df.empty:
+            post_html = post_df.sort_values('p-value').to_html(
+                index=False, classes=table_class, na_rep='N/A'
+            )
+            content_parts.append(f"""
+    <h3>{section_num}.2 Post</h3>
+    {post_html}""")
+
+        if change_df is not None and not change_df.empty:
+            change_html = change_df.sort_values('p-value').to_html(
+                index=False, classes=table_class, na_rep='N/A'
+            )
+            content_parts.append(f"""
+    <h3>{section_num}.3 Change</h3>
+    {change_html}""")
+
+        return ''.join(content_parts)
+
     def _generate_footer(self) -> str:
         """Generate the report footer."""
         return """
@@ -233,6 +321,72 @@ class PhenotypeReportGenerator:
 {body}
 </body>
 </html>
+"""
+
+    def _embed_image(self, image_path: str) -> str:
+        """Convert an image file to base64 data URI for HTML embedding.
+
+        Args:
+            image_path: Path to the image file
+
+        Returns:
+            Base64 data URI string for use in img src attribute
+        """
+        path = Path(image_path)
+        if not path.exists():
+            return ""
+
+        suffix = path.suffix.lower()
+        mime_types = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml'
+        }
+        mime_type = mime_types.get(suffix, 'image/png')
+
+        with open(path, 'rb') as f:
+            data = base64.b64encode(f.read()).decode('utf-8')
+
+        return f"data:{mime_type};base64,{data}"
+
+    def _generate_dashboard(self) -> str:
+        """Generate the dashboard section with embedded figures.
+
+        Returns:
+            HTML string for the dashboard section
+        """
+        if not self.data.dashboard_figures:
+            return ""
+
+        figure_html_parts = []
+        for fig_path in self.data.dashboard_figures:
+            path = Path(fig_path)
+            if not path.exists():
+                continue
+
+            data_uri = self._embed_image(fig_path)
+            if not data_uri:
+                continue
+
+            # Use filename (without extension) as caption
+            caption = path.stem.replace('_', ' ').title()
+            figure_html_parts.append(f"""
+        <figure class="dashboard-figure">
+            <img src="{data_uri}" alt="{caption}">
+            <figcaption>{caption}</figcaption>
+        </figure>""")
+
+        if not figure_html_parts:
+            return ""
+
+        return f"""
+    <h2>Dashboard</h2>
+    <p class="note">Visual overview of phenotype characteristics and AF burden trajectories</p>
+    <div class="dashboard">
+        {''.join(figure_html_parts)}
+    </div>
 """
 
     def _prepare_ilr_table(self) -> str:
